@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 — Not Found</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f8fafc;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 20px;
+            padding: 48px 40px 40px;
+            text-align: center;
+            max-width: 420px;
+            width: 90%;
+            border: 0.5px solid #e2e8f0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #378ADD, #7F77DD, #AFA9EC);
+        }
+
+        .icon-wrap {
+            width: 80px; height: 80px;
+            border-radius: 50%;
+            background: #EEF2FF;
+            border: 1.5px solid #C7D2FE;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 20px;
+            animation: popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
+        }
+
+        .icon-wrap i { font-size: 34px; color: #6366F1; }
+
+        @keyframes popIn {
+            from { transform: scale(0.4); opacity: 0; }
+            to   { transform: scale(1);   opacity: 1; }
+        }
+
+        .code {
+            font-size: 56px; font-weight: 700;
+            background: linear-gradient(135deg, #378ADD, #7F77DD);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1; margin-bottom: 8px;
+            animation: fadeUp 0.4s ease 0.15s both;
+        }
+
+        h1 {
+            font-size: 18px; font-weight: 500;
+            color: #1e293b; margin: 0 0 6px;
+            animation: fadeUp 0.4s ease 0.25s both;
+        }
+
+        .sub {
+            font-size: 13px; color: #64748b;
+            margin: 0 0 28px; line-height: 1.6;
+            animation: fadeUp 0.4s ease 0.35s both;
+        }
+
+        .code-block {
+            background: #0f172a;
+            border-radius: 10px;
+            padding: 14px 16px;
+            text-align: left;
+            margin-bottom: 20px;
+            animation: fadeUp 0.4s ease 0.4s both;
+        }
+
+        .code-line {
+            font-size: 12px;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            line-height: 1.8;
+        }
+
+        .kw  { color: #7F77DD; }
+        .str { color: #5DCAA5; }
+        .cm  { color: #475569; }
+        .fn  { color: #378ADD; }
+
+        .pills {
+            display: flex; gap: 8px;
+            justify-content: center; flex-wrap: wrap;
+            animation: fadeUp 0.4s ease 0.5s both;
+        }
+
+        .pill {
+            display: flex; align-items: center; gap: 5px;
+            font-size: 11px; padding: 4px 10px;
+            border-radius: 99px;
+            border: 0.5px solid #C7D2FE;
+            color: #4338CA; background: #EEF2FF;
+        }
+
+        .pill i { font-size: 11px; }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(6px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+<div class="card">
+    <div class="icon-wrap">
+        <i class="ti ti-map-search"></i>
+    </div>
+    <div class="code">404</div>
+    <h1>Endpoint not found</h1>
+    <p class="sub">The route you're looking for doesn't exist.<br>Check the URL or refer to the API documentation.</p>
+
+    <div class="code-block">
+        <div class="code-line"><span class="cm">// requested route</span></div>
+        <div class="code-line"><span class="kw">{{ .method }}</span> <span class="str">{{ .path }}</span></div>
+    </div>
+
+    <div class="pills">
+        <div class="pill"><i class="ti ti-alert-triangle"></i> 404 Not Found</div>
+        <div class="pill"><i class="ti ti-route-off"></i> No route matched</div>
+    </div>
+</div>
+</body>
+</html>
