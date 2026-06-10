@@ -1,7 +1,6 @@
 package config
 
 import (
-	"log"
 	"os"
 
 	"github.com/joho/godotenv"
@@ -15,9 +14,9 @@ type Config struct {
 	GiphyApiKey        string
 }
 
-func GetConfig() *Config {
+func GetConfig() (*Config, error) {
 	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found, reading from environment")
+		return nil, err
 	}
 
 	return &Config{
@@ -26,5 +25,5 @@ func GetConfig() *Config {
 		SessionSecret:      os.Getenv("SESSION_SECRET"),
 		DatabaseUrl:        os.Getenv("DATABASE_URL"),
 		GiphyApiKey:        os.Getenv("GIPHY_API_KEY"),
-	}
+	}, nil
 }

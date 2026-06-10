@@ -20,7 +20,8 @@ func NewGiphyHandler(giphyUC *usecase.GiphyUC) *GiphyHandler {
 }
 
 func (g *GiphyHandler) GetTrendingGifs(c *gin.Context) {
-	gifs, err := g.giphyUC.GetTrendingGifs(c.DefaultQuery("offset", "0"))
+	ctx := c.Request.Context()
+	gifs, err := g.giphyUC.GetTrendingGifs(ctx, c.DefaultQuery("offset", "0"))
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, utils.GetErrorResponse(err, errorcode.ClientError))
@@ -31,7 +32,8 @@ func (g *GiphyHandler) GetTrendingGifs(c *gin.Context) {
 }
 
 func (g *GiphyHandler) SearchGifs(c *gin.Context) {
-	gifs, err := g.giphyUC.GetGifsBySearch(c.Query("search"), c.DefaultQuery("offset", "0"))
+	ctx := c.Request.Context()
+	gifs, err := g.giphyUC.GetGifsBySearch(ctx, c.Query("search"), c.DefaultQuery("offset", "0"))
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, utils.GetErrorResponse(err, errorcode.ClientError))

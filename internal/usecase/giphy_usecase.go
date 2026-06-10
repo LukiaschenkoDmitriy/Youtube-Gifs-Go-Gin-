@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -28,27 +29,24 @@ type GiphyResponse struct {
 }
 
 func NewGiphyUC(c *config.Config) *GiphyUC {
-	giphy := &GiphyUC{}
-	giphy.apiKey = c.GiphyApiKey
-
-	return giphy
+	return &GiphyUC{apiKey: c.GiphyApiKey}
 }
 
-func (g *GiphyUC) GetTrendingGifs(offset string) ([]*domain.Gif, error) {
-	return g.baseRequest("GET", "https://api.giphy.com/v1/gifs/trending", map[string]string{
+func (g *GiphyUC) GetTrendingGifs(ctx context.Context, offset string) ([]*domain.Gif, error) {
+	return g.baseRequest(ctx, "GET", "https://api.giphy.com/v1/gifs/trending", map[string]string{
 		"offset": offset,
 	})
 }
 
-func (g *GiphyUC) GetGifsBySearch(search string, offset string) ([]*domain.Gif, error) {
-	return g.baseRequest("GET", "https://api.giphy.com/v1/gifs/search", map[string]string{
+func (g *GiphyUC) GetGifsBySearch(ctx context.Context, search string, offset string) ([]*domain.Gif, error) {
+	return g.baseRequest(ctx, "GET", "https://api.giphy.com/v1/gifs/search", map[string]string{
 		"q":      search,
 		"offset": offset,
 	})
 }
 
-func (g *GiphyUC) baseRequest(method string, url string, params map[string]string) ([]*domain.Gif, error) {
-	r, err := http.NewRequest(method, url, nil)
+func (g *GiphyUC) baseRequest(ctx context.Context, method string, url string, params map[string]string) ([]*domain.Gif, error) {
+	r, err := http.NewRequestWithContext(ctx, method, url, nil)
 
 	if err != nil {
 		return nil, err

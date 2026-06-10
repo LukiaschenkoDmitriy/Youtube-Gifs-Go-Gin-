@@ -37,7 +37,8 @@ func (oa *OAuthHandler) Logout(c *gin.Context) {
 }
 
 func (oa *OAuthHandler) HandleCallback(c *gin.Context) {
-	err := oa.oauthUseCase.InitClient(c.Query("code"))
+	ctx := c.Request.Context()
+	user, err := oa.oauthUseCase.GetUser(ctx, c.Query("code"))
 
 	if err != nil {
 		c.HTML(http.StatusBadRequest, "auth-error.html", gin.H{
@@ -46,16 +47,7 @@ func (oa *OAuthHandler) HandleCallback(c *gin.Context) {
 		return
 	}
 
-	user, err := oa.oauthUseCase.GetUser()
-
-	if err != nil {
-		c.HTML(http.StatusBadRequest, "auth-error.html", gin.H{
-			"message": "Failed to get user data.",
-		})
-		return
-	}
-
-	user, err = oa.userRepository.CreateOrGetUser(user)
+	user, err = oa.userRepository.CreateOrGetUser(ctx, user)
 
 	if err != nil {
 		c.HTML(http.StatusBadRequest, "auth-error.html", gin.H{

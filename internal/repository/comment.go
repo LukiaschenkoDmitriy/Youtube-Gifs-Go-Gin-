@@ -24,30 +24,32 @@ func NewCommentRepository(pool *pgxpool.Pool) *CommentRepository {
 	}
 }
 
-func (cr *CommentRepository) CreateComment(comment *domain.Comment) (*domain.Comment, error) {
+func (cr *CommentRepository) CreateComment(ctx context.Context, comment *domain.CreateCommentRequest, userId string) (*domain.Comment, error) {
 	query := `INSERT INTO comments (user_id, gif_url, text, video_id, answer_to) VALUES ($1, $2, $3, $4, $5) RETURNING id`
 
-	err := cr.pool.QueryRow(context.Background(), query, comment.UserId, comment.GifUrl, comment.Text, comment.VideoId, comment.AnswerTo).Scan(&comment.ID)
+	var commentId string
+
+	err := cr.pool.QueryRow(ctx, query, userId, comment.GifUrl, comment.Text, comment.VideoId, comment.AnswerTo).Scan(&commentId)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return cr.GetCommentById(comment.ID, comment.UserId)
+	return cr.GetCommentById(ctx, commentId, userId)
 }
 
-func (cr *CommentRepository) DeleteComment(commentId string, userId string) error {
+func (cr *CommentRepository) DeleteComment(ctx context.Context, commentId string, userId string) error {
 	query := `DELETE FROM comments WHERE id = $1 AND user_id = $2`
 
-	_, err := cr.pool.Exec(context.Background(), query, commentId, userId)
+	_, err := cr.pool.Exec(ctx, query, commentId, userId)
 
 	return err
 }
 
-func (cr *CommentRepository) GetUserComments(userId string) ([]*domain.Comment, error) {
+func (cr *CommentRepository) GetUserComments(ctx context.Context, userId string) ([]*domain.Comment, error) {
 	query := `SELECT * FROM comments WHERE user_id = $1`
 
-	rows, err := cr.pool.Query(context.Background(), query, userId)
+	rows, err := cr.pool.Query(ctx, query, userId)
 
 	if err != nil {
 		return nil, err
@@ -64,36 +66,36 @@ func (cr *CommentRepository) GetUserComments(userId string) ([]*domain.Comment, 
 	return comments, nil
 }
 
-func (cr *CommentRepository) ToggleAction(userId string, commentId string, actionType int) error {
+func (cr *CommentRepository) ToggleAction(ctx context.Context, userId string, commentId string, actionType int) error {
 	var existingId string
 	checkQuery := `SELECT id FROM comment_actions WHERE user_id = $1 AND comment_id = $2 AND type = $3`
-	err := cr.pool.QueryRow(context.Background(), checkQuery, userId, commentId, actionType).Scan(&existingId)
+	err := cr.pool.QueryRow(ctx, checkQuery, userId, commentId, actionType).Scan(&existingId)
 
 	if err == nil {
-		_, err = cr.pool.Exec(context.Background(),
+		_, err = cr.pool.Exec(ctx,
 			`DELETE FROM comment_actions WHERE id = $1`, existingId)
 		return err
 	}
 
-	_, _ = cr.pool.Exec(context.Background(),
+	_, _ = cr.pool.Exec(ctx,
 		`DELETE FROM comment_actions WHERE user_id = $1 AND comment_id = $2`, userId, commentId)
 
-	_, err = cr.pool.Exec(context.Background(),
+	_, err = cr.pool.Exec(ctx,
 		`INSERT INTO comment_actions (user_id, comment_id, type) VALUES ($1, $2, $3)`,
 		userId, commentId, actionType)
 
 	return err
 }
 
-func (cr *CommentRepository) LikeComment(userId string, commentId string) error {
-	return cr.ToggleAction(userId, commentId, ActionLike)
+func (cr *CommentRepository) LikeComment(ctx context.Context, userId string, commentId string) error {
+	return cr.ToggleAction(ctx, userId, commentId, ActionLike)
 }
 
-func (cr *CommentRepository) DislikeComment(userId string, commentId string) error {
-	return cr.ToggleAction(userId, commentId, ActionDislike)
+func (cr *CommentRepository) DislikeComment(ctx context.Context, userId string, commentId string) error {
+	return cr.ToggleAction(ctx, userId, commentId, ActionDislike)
 }
 
-func (cr *CommentRepository) GetCommentById(id string, userId string) (*domain.Comment, error) {
+func (cr *CommentRepository) GetCommentById(ctx context.Context, id string, userId string) (*domain.Comment, error) {
 	query := `
         WITH RECURSIVE comment_tree AS (
             -- базовий коментар
@@ -120,7 +122,7 @@ func (cr *CommentRepository) GetCommentById(id string, userId string) (*domain.C
         ORDER BY c.created_at ASC
     `
 
-	rows, err := cr.pool.Query(context.Background(), query, id, userId)
+	rows, err := cr.pool.Query(ctx, query, id, userId)
 	if err != nil {
 		return nil, err
 	}
@@ -144,7 +146,7 @@ func (cr *CommentRepository) GetCommentById(id string, userId string) (*domain.C
 	return roots[0], nil
 }
 
-func (cr *CommentRepository) GetCommentByVideoId(videoId string, userId *string) ([]*domain.Comment, error) {
+func (cr *CommentRepository) GetCommentByVideoId(ctx context.Context, videoId string, userId *string) ([]*domain.Comment, error) {
 	query := `
         SELECT 
             c.id, c.user_id, c.video_id, c.gif_url, c.text, c.answer_to, c.created_at,
@@ -165,7 +167,7 @@ func (cr *CommentRepository) GetCommentByVideoId(videoId string, userId *string)
 		userIdParam = *userId
 	}
 
-	rows, err := cr.pool.Query(context.Background(), query, videoId, userIdParam)
+	rows, err := cr.pool.Query(ctx, query, videoId, userIdParam)
 	if err != nil {
 		return nil, err
 	}

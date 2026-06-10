@@ -21,9 +21,10 @@ func NewUserHandler(ur *repository.UserRepository) *UserHandler {
 }
 
 func (uh *UserHandler) GetCurrentUser(c *gin.Context) {
+	ctx := c.Request.Context()
 	userId := session.GetUserId(c)
 
-	user, err := uh.ur.GetUserById(userId)
+	user, err := uh.ur.GetUserById(ctx, userId)
 
 	if err != nil {
 		c.JSON(http.StatusBadRequest, utils.GetErrorResponse(err, errorcode.EntityNotFound))

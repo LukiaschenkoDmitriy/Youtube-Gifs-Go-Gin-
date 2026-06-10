@@ -17,3 +17,10 @@ type Comment struct {
 	User         User       `json:"user" db:"-"`
 	Answers      []*Comment `json:"answers" db:"-"`
 }
+
+type CreateCommentRequest struct {
+	VideoId  string  `json:"video_id" binding:"required" db:"video_id"`
+	GifUrl   string  `json:"gif_url" db:"gif_url"`
+	Text     string  `json:"text" db:"text"`
+	AnswerTo *string `json:"answer_to" binding:"omitempty,uuid" db:"answer_to"`
+}
