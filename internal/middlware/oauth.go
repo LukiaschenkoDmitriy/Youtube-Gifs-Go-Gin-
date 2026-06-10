@@ -4,16 +4,17 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/dmytrii/youtube-gifs-chat/internal/errorcode"
 	"github.com/dmytrii/youtube-gifs-chat/internal/session"
 	"github.com/dmytrii/youtube-gifs-chat/internal/utils"
 	"github.com/gin-gonic/gin"
 )
 
-func OAuthUserInMiddleware() gin.HandlerFunc {
+func GuestRequredMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if session.GetUserId(c) != "" {
-			c.JSON(http.StatusBadRequest, utils.GetErrorResponse(errors.New("User already logged in"), errorcode.AlreadyAuthorized))
+		_, ok := session.GetUserId(c)
+
+		if ok {
+			c.JSON(http.StatusBadRequest, utils.GetErrorResponse("User already logged in", errors.New("Authorized")))
 			c.Abort()
 			return
 		}
@@ -24,11 +25,15 @@ func OAuthUserInMiddleware() gin.HandlerFunc {
 
 func OAuthRequiredMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if session.GetUserId(c) == "" {
-			c.JSON(http.StatusBadRequest, utils.GetErrorResponse(errors.New("you need to log in first"), errorcode.NotAuthorized))
+		userId, ok := session.GetUserId(c)
+
+		if !ok {
+			c.JSON(http.StatusBadRequest, utils.GetErrorResponse("Unauthorized", errors.New("Unauthorized")))
 			c.Abort()
 			return
 		}
+
+		c.Set("userId", userId)
 
 		c.Next()
 	}

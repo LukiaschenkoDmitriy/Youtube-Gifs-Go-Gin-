@@ -7,7 +7,6 @@ import (
 	"github.com/dmytrii/youtube-gifs-chat/internal/session"
 	"github.com/dmytrii/youtube-gifs-chat/internal/usecase"
 	"github.com/dmytrii/youtube-gifs-chat/internal/utils"
-	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 )
 
@@ -24,21 +23,59 @@ func NewOAuthHandler(oauthUseCase *usecase.OAuthUC, userRepository *repository.U
 }
 
 func (oa *OAuthHandler) RedirectToLogin(c *gin.Context) {
-	c.Redirect(http.StatusTemporaryRedirect, oa.oauthUseCase.GetLoginRedirectUrl())
+	state, err := utils.RandomHex(32)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, utils.GetErrorResponse("Failed to generate random state", err))
+		return
+	}
+
+	if err := session.SetOAuthState(c, state); err != nil {
+		c.JSON(http.StatusInternalServerError, utils.GetErrorResponse("Failed to set OAuth state in session", err))
+		return
+	}
+
+	c.Redirect(http.StatusTemporaryRedirect, oa.oauthUseCase.GetLoginRedirectUrl(state))
 }
 
 func (oa *OAuthHandler) Logout(c *gin.Context) {
-	session := sessions.Default(c)
-
-	session.Clear()
-	session.Save()
+	if err := session.ClearSession(c); err != nil {
+		c.JSON(http.StatusInternalServerError, utils.GetErrorResponse("Failed to clear session", err))
+		return
+	}
 
 	c.JSON(200, utils.GetSuccessResponse(nil, "Logout Success"))
 }
 
 func (oa *OAuthHandler) HandleCallback(c *gin.Context) {
 	ctx := c.Request.Context()
-	user, err := oa.oauthUseCase.GetUser(ctx, c.Query("code"))
+
+	cacheStatus, ok := session.GetOAuthState(c)
+
+	if !ok {
+		c.HTML(http.StatusBadRequest, "auth-error.html", gin.H{
+			"message": "OAuth State not found in session.",
+		})
+		return
+	}
+
+	code, state := c.Query("code"), c.Query("state")
+
+	if cacheStatus != state {
+		c.HTML(http.StatusBadRequest, "auth-error.html", gin.H{
+			"message": "OAuth State mismatch.",
+		})
+		return
+	}
+
+	if err := session.DeleteOAuthState(c); err != nil {
+		c.HTML(http.StatusInternalServerError, "auth-error.html", gin.H{
+			"message": "Failed to delete OAuth state from session.",
+		})
+		return
+	}
+
+	user, err := oa.oauthUseCase.GetUser(ctx, code)
 
 	if err != nil {
 		c.HTML(http.StatusBadRequest, "auth-error.html", gin.H{
@@ -51,7 +88,7 @@ func (oa *OAuthHandler) HandleCallback(c *gin.Context) {
 
 	if err != nil {
 		c.HTML(http.StatusBadRequest, "auth-error.html", gin.H{
-			"message": "Failed to create.",
+			"message": "Failed to create or get user.",
 		})
 		return
 	}

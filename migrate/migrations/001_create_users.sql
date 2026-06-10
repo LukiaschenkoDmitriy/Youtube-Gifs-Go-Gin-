@@ -7,7 +7,7 @@ CREATE TABLE users (
    picture    VARCHAR(255) NOT NULL,
    name       VARCHAR(255) NOT NULL,
    email      VARCHAR(255) UNIQUE NOT NULL,
-   custom_url VARCHAR(255) NOT NULL,
+   custom_url VARCHAR(255) DEFAULT NULL,
    created_at TIMESTAMP DEFAULT NOW()
 );
 

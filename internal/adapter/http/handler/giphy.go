@@ -3,7 +3,6 @@ package handler
 import (
 	"net/http"
 
-	"github.com/dmytrii/youtube-gifs-chat/internal/errorcode"
 	"github.com/dmytrii/youtube-gifs-chat/internal/usecase"
 	"github.com/dmytrii/youtube-gifs-chat/internal/utils"
 	"github.com/gin-gonic/gin"
@@ -21,10 +20,11 @@ func NewGiphyHandler(giphyUC *usecase.GiphyUC) *GiphyHandler {
 
 func (g *GiphyHandler) GetTrendingGifs(c *gin.Context) {
 	ctx := c.Request.Context()
+
 	gifs, err := g.giphyUC.GetTrendingGifs(ctx, c.DefaultQuery("offset", "0"))
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, utils.GetErrorResponse(err, errorcode.ClientError))
+		c.JSON(http.StatusInternalServerError, utils.GetErrorResponse("Failed to get trending gifs", err))
 		return
 	}
 
@@ -33,10 +33,11 @@ func (g *GiphyHandler) GetTrendingGifs(c *gin.Context) {
 
 func (g *GiphyHandler) SearchGifs(c *gin.Context) {
 	ctx := c.Request.Context()
+
 	gifs, err := g.giphyUC.GetGifsBySearch(ctx, c.Query("search"), c.DefaultQuery("offset", "0"))
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, utils.GetErrorResponse(err, errorcode.ClientError))
+		c.JSON(http.StatusInternalServerError, utils.GetErrorResponse("Failed to search gifs", err))
 		return
 	}
 

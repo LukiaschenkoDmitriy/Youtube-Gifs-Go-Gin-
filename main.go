@@ -35,7 +35,7 @@ func setupErrorRoute(r *gin.Engine) {
 }
 
 func setupRoutes(e *gin.Engine, c *config.Config, p *pgxpool.Pool) {
-	http.OAuthRouters(e.Group(""), dependency.GetOAuthHandler(c, p))
+	http.OAuthRouters(e.Group(""), dependency.GetOAuthHandler(c, p), c.AuthEndpoint)
 	http.GiphyRouters(e.Group(""), dependency.GetGiphyHandler(c))
 
 	// Entity Routes

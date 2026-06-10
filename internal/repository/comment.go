@@ -46,26 +46,6 @@ func (cr *CommentRepository) DeleteComment(ctx context.Context, commentId string
 	return err
 }
 
-func (cr *CommentRepository) GetUserComments(ctx context.Context, userId string) ([]*domain.Comment, error) {
-	query := `SELECT * FROM comments WHERE user_id = $1`
-
-	rows, err := cr.pool.Query(ctx, query, userId)
-
-	if err != nil {
-		return nil, err
-	}
-
-	defer rows.Close()
-
-	comments, err := pgx.CollectRows(rows, pgx.RowToAddrOfStructByName[domain.Comment])
-
-	if err != nil {
-		return nil, err
-	}
-
-	return comments, nil
-}
-
 func (cr *CommentRepository) ToggleAction(ctx context.Context, userId string, commentId string, actionType int) error {
 	var existingId string
 	checkQuery := `SELECT id FROM comment_actions WHERE user_id = $1 AND comment_id = $2 AND type = $3`

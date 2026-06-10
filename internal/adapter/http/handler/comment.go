@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/dmytrii/youtube-gifs-chat/internal/domain"
-	"github.com/dmytrii/youtube-gifs-chat/internal/errorcode"
 	"github.com/dmytrii/youtube-gifs-chat/internal/repository"
 	"github.com/dmytrii/youtube-gifs-chat/internal/session"
 	"github.com/dmytrii/youtube-gifs-chat/internal/utils"
@@ -23,13 +22,13 @@ func NewCommentHandler(cr *repository.CommentRepository) *CommentHandler {
 
 func (h *CommentHandler) DeleteComment(c *gin.Context) {
 	ctx := c.Request.Context()
-	commentId := c.Param("commentId")
-	userId := session.GetUserId(c)
+
+	commentId, userId := c.Param("commentId"), c.GetString("userId")
 
 	err := h.cr.DeleteComment(ctx, commentId, userId)
 
 	if err != nil {
-		c.JSON(http.StatusBadRequest, utils.GetErrorResponse(err, errorcode.DataBaseError))
+		c.JSON(http.StatusBadRequest, utils.GetErrorResponse("Delete comment failed", err))
 		return
 	}
 
@@ -38,13 +37,13 @@ func (h *CommentHandler) DeleteComment(c *gin.Context) {
 
 func (h *CommentHandler) GetComment(c *gin.Context) {
 	ctx := c.Request.Context()
-	commentId := c.Param("commentId")
-	userId := session.GetUserId(c)
+
+	commentId, userId := c.Param("commentId"), c.GetString("userId")
 
 	comment, err := h.cr.GetCommentById(ctx, commentId, userId)
 
 	if err != nil {
-		c.JSON(http.StatusBadRequest, utils.GetErrorResponse(err, errorcode.DataBaseError))
+		c.JSON(http.StatusBadRequest, utils.GetErrorResponse("Get comment failed", err))
 		return
 	}
 
@@ -52,47 +51,34 @@ func (h *CommentHandler) GetComment(c *gin.Context) {
 }
 
 func (h *CommentHandler) CreateComment(c *gin.Context) {
-	comment := new(domain.CreateCommentRequest)
+	ctx := c.Request.Context()
+
+	comment, userId := new(domain.CreateCommentRequest), c.GetString("userId")
 
 	if err := c.BindJSON(&comment); err != nil {
-		c.JSON(http.StatusBadRequest, utils.GetErrorResponse(err, errorcode.WrongJSONDataStructure))
+		c.JSON(http.StatusBadRequest, utils.GetErrorResponse(err.Error(), err))
 		return
 	}
 
-	ctx := c.Request.Context()
-	rComment, err := h.cr.CreateComment(ctx, comment, session.GetUserId(c))
+	nComment, err := h.cr.CreateComment(ctx, comment, userId)
 
 	if err != nil {
-		c.JSON(http.StatusBadRequest, utils.GetErrorResponse(err, errorcode.EntityCreationFailed))
+		c.JSON(http.StatusBadRequest, utils.GetErrorResponse("Create comment failed", err))
 		return
 	}
 
-	c.JSON(http.StatusOK, utils.GetSuccessResponse(rComment, "Comment created"))
-}
-
-func (h *CommentHandler) GetUserComments(c *gin.Context) {
-	userId := session.GetUserId(c)
-
-	ctx := c.Request.Context()
-	comments, err := h.cr.GetUserComments(ctx, userId)
-
-	if err != nil {
-		c.JSON(http.StatusBadRequest, utils.GetErrorResponse(err, errorcode.DataBaseError))
-		return
-	}
-
-	c.JSON(http.StatusOK, utils.GetSuccessResponse(comments, "User comments"))
+	c.JSON(http.StatusOK, utils.GetSuccessResponse(nComment, "Comment created"))
 }
 
 func (h *CommentHandler) LikeComment(c *gin.Context) {
-	commentId := c.Param("commentId")
-	userId := session.GetUserId(c)
 	ctx := c.Request.Context()
+
+	commentId, userId := c.Param("commentId"), c.GetString("userId")
 
 	err := h.cr.LikeComment(ctx, userId, commentId)
 
 	if err != nil {
-		c.JSON(http.StatusBadRequest, utils.GetErrorResponse(err, errorcode.DataBaseError))
+		c.JSON(http.StatusBadRequest, utils.GetErrorResponse("Like comment failed", err))
 		return
 	}
 
@@ -100,14 +86,14 @@ func (h *CommentHandler) LikeComment(c *gin.Context) {
 }
 
 func (h *CommentHandler) DislikeComment(c *gin.Context) {
-	commentId := c.Param("commentId")
-	userId := session.GetUserId(c)
 	ctx := c.Request.Context()
+
+	commentId, userId := c.Param("commentId"), c.GetString("userId")
 
 	err := h.cr.DislikeComment(ctx, userId, commentId)
 
 	if err != nil {
-		c.JSON(http.StatusBadRequest, utils.GetErrorResponse(err, errorcode.DataBaseError))
+		c.JSON(http.StatusBadRequest, utils.GetErrorResponse("Dislike comment failed", err))
 		return
 	}
 
@@ -115,19 +101,20 @@ func (h *CommentHandler) DislikeComment(c *gin.Context) {
 }
 
 func (h *CommentHandler) GetCommentByVideoId(c *gin.Context) {
-	videoId := c.Param("videoId")
-
-	userId := session.GetUserId(c)
 	ctx := c.Request.Context()
+
+	videoId := c.Param("videoId")
+	userId, ok := session.GetUserId(c)
+
 	var userIdPtr *string
-	if userId != "" {
+	if ok {
 		userIdPtr = &userId
 	}
 
 	comments, err := h.cr.GetCommentByVideoId(ctx, videoId, userIdPtr)
 
 	if err != nil {
-		c.JSON(http.StatusBadRequest, utils.GetErrorResponse(err, errorcode.DataBaseError))
+		c.JSON(http.StatusBadRequest, utils.GetErrorResponse("Get video comments failed", err))
 		return
 	}
 

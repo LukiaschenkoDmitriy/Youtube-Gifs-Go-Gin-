@@ -4,11 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/dmytrii/youtube-gifs-chat/config"
 	"github.com/dmytrii/youtube-gifs-chat/internal/domain"
-	"github.com/dmytrii/youtube-gifs-chat/internal/utils"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"golang.org/x/sync/errgroup"
@@ -27,8 +27,8 @@ type BaseUserInfo struct {
 
 type YoutubeChannelInfo struct {
 	Items []struct {
-		Snippet struct {
-			CustomUrl string `json:"customUrl"`
+		Snippet *struct {
+			CustomUrl *string `json:"customUrl"`
 		} `json:"snippet"`
 	} `json:"items"`
 }
@@ -53,8 +53,7 @@ func (oa *OAuthUC) getToken(ctx context.Context, code string) (*oauth2.Token, er
 	return token, nil
 }
 
-func (oa *OAuthUC) GetLoginRedirectUrl() string {
-	state, _ := utils.RandomHex(32)
+func (oa *OAuthUC) GetLoginRedirectUrl(state string) string {
 	return oa.Config.AuthCodeURL(state, oauth2.AccessTypeOffline, oauth2.SetAuthURLParam("prompt", "consent"))
 }
 
@@ -93,7 +92,7 @@ func (oa *OAuthUC) GetUser(ctx context.Context, authCode string) (*domain.User, 
 		Name:      baseInfo.Name,
 		Email:     baseInfo.Email,
 		Picture:   baseInfo.Picture,
-		CustomUrl: *customUrl,
+		CustomUrl: customUrl,
 	}, nil
 }
 
@@ -144,20 +143,33 @@ func (oa *OAuthUC) getUserCustomURL(ctx context.Context, client *http.Client) (*
 		return nil, errors.New("OAuth2: Token is invalid")
 	}
 
-	channelInfo := new(YoutubeChannelInfo)
+	switch resp.StatusCode {
+	case http.StatusOK:
+		channelInfo := new(YoutubeChannelInfo)
 
-	if err := json.NewDecoder(resp.Body).Decode(&channelInfo); err != nil {
-		return nil, err
+		if err := json.NewDecoder(resp.Body).Decode(&channelInfo); err != nil {
+			return nil, err
+		}
+
+		if len(channelInfo.Items) == 0 {
+			return nil, errors.New("OAuth2: Youtube channel not found")
+		}
+
+		return channelInfo.Items[0].Snippet.CustomUrl, nil
+	case http.StatusForbidden:
+		return nil, errors.New("OAuth2: YouTube scope doesn't provide")
+	case http.StatusUnauthorized:
+		return nil, errors.New("OAuth2: Token is invalid")
+	default:
+		return nil, fmt.Errorf("OAuth2: YouTube API unexpected status %d", resp.StatusCode)
 	}
-
-	return &channelInfo.Items[0].Snippet.CustomUrl, nil
 }
 
 func getConfig(c config.Config) *oauth2.Config {
 	return &oauth2.Config{
 		ClientID:     c.GoogleClientId,
 		ClientSecret: c.GoogleClientSecret,
-		RedirectURL:  "http://localhost:8080/auth/2l8s118z69mkq91m3y6r161bq8yp4hmsgaveoqzivvzfs45kb1/callback",
+		RedirectURL:  c.ServerUrl + c.AuthEndpoint + "/callback",
 		Scopes: []string{
 			"email",
 			"profile",

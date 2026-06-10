@@ -12,34 +12,43 @@ func CommentRouters(g *gin.RouterGroup, h *handler.CommentHandler) {
 	authGroup := g.Group("")
 	authGroup.Use(middlware.OAuthRequiredMiddleware())
 	{
-		authGroup.GET("/comments", h.GetUserComments)
-		authGroup.GET("/comments/:commentId", h.GetComment)
-		authGroup.POST("/comments", h.CreateComment)
-		authGroup.POST("/comments/:commentId/like", h.LikeComment)
-		authGroup.POST("/comments/:commentId/dislike", h.DislikeComment)
-		authGroup.DELETE("/comments/:commentId", h.DeleteComment)
+		{
+			authGroup.GET("/comments/:commentId", h.GetComment)
+		}
+		{
+			authGroup.POST("/comments", h.CreateComment)
+			authGroup.POST("/comments/:commentId/like", h.LikeComment)
+			authGroup.POST("/comments/:commentId/dislike", h.DislikeComment)
+		}
+		{
+			authGroup.DELETE("/comments/:commentId", h.DeleteComment)
+		}
 	}
 }
 
-func OAuthRouters(g *gin.RouterGroup, h *handler.OAuthHandler) {
-	g.POST("/auth/2l8s118z69mkq91m3y6r161bq8yp4hmsgaveoqzivvzfs45kb1/logout", h.Logout)
+func OAuthRouters(g *gin.RouterGroup, h *handler.OAuthHandler, authEndpoint string) {
+	g.POST(authEndpoint+"/logout", h.Logout)
 
-	authGroup := g.Group("").Use(middlware.OAuthUserInMiddleware())
-	authGroup.GET("/auth/2l8s118z69mkq91m3y6r161bq8yp4hmsgaveoqzivvzfs45kb1/login", h.RedirectToLogin)
-	authGroup.GET("/auth/2l8s118z69mkq91m3y6r161bq8yp4hmsgaveoqzivvzfs45kb1/callback", h.HandleCallback)
+	guestGroup := g.Group("").Use(middlware.GuestRequredMiddleware())
+	{
+		guestGroup.GET(authEndpoint+"/login", h.RedirectToLogin)
+		guestGroup.GET(authEndpoint+"/callback", h.HandleCallback)
+	}
 }
 
 func GiphyRouters(g *gin.RouterGroup, h *handler.GiphyHandler) {
 	g.Use(middlware.OAuthRequiredMiddleware())
-
-	g.GET("/giphy/trending", h.GetTrendingGifs)
-	g.GET("/giphy/search", h.SearchGifs)
+	{
+		g.GET("/giphy/trending", h.GetTrendingGifs)
+		g.GET("/giphy/search", h.SearchGifs)
+	}
 }
 
 func UserRouters(g *gin.RouterGroup, h *handler.UserHandler) {
 	g.Use(middlware.OAuthRequiredMiddleware())
-
-	g.GET("/users/current", h.GetCurrentUser)
+	{
+		g.GET("/users/current", h.GetCurrentUser)
+	}
 }
 
 func AdditionalRouters(g *gin.RouterGroup, h *handler.AdditionalHandler) {

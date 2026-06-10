@@ -24,21 +24,46 @@ func CreateStore(c *config.Config) *cookie.Store {
 	return &store
 }
 
-func GetUserId(c *gin.Context) string {
+func ClearSession(c *gin.Context) error {
 	session := sessions.Default(c)
 
-	userId := session.Get("user_id")
-
-	if userId == nil {
-		return ""
-	}
-
-	return userId.(string)
+	session.Clear()
+	return session.Save()
 }
 
-func SetSessionUserId(c *gin.Context, u *domain.User) {
+func GetUserId(c *gin.Context) (string, bool) {
+	session := sessions.Default(c)
+
+	userId, ok := session.Get("user_id").(string)
+
+	return userId, ok
+}
+
+func SetSessionUserId(c *gin.Context, u *domain.User) error {
 	session := sessions.Default(c)
 
 	session.Set("user_id", u.ID)
-	session.Save()
+	return session.Save()
+}
+
+func GetOAuthState(c *gin.Context) (string, bool) {
+	session := sessions.Default(c)
+
+	oauthState, ok := session.Get("oauth_state").(string)
+
+	return oauthState, ok
+}
+
+func SetOAuthState(c *gin.Context, state string) error {
+	session := sessions.Default(c)
+
+	session.Set("oauth_state", state)
+	return session.Save()
+}
+
+func DeleteOAuthState(c *gin.Context) error {
+	session := sessions.Default(c)
+
+	session.Delete("oauth_state")
+	return session.Save()
 }
