@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"errors"
 
 	"github.com/dmytrii/youtube-gifs-chat/internal/domain"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -33,7 +32,7 @@ func (ur *UserRepository) GetUserByOAuthId(ctx context.Context, oauthId string) 
 	)
 
 	if err != nil {
-		return nil, errors.New("user not found")
+		return nil, err
 	}
 
 	return user, nil
@@ -54,7 +53,7 @@ func (ur *UserRepository) GetUserById(ctx context.Context, id string) (*domain.U
 	)
 
 	if err != nil {
-		return nil, errors.New("user not found")
+		return nil, err
 	}
 
 	return user, nil
