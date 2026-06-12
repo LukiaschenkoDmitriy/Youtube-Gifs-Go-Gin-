@@ -3,18 +3,21 @@ package handler
 import (
 	"net/http"
 
+	"github.com/dmytrii/youtube-gifs-chat/internal/cache"
 	"github.com/dmytrii/youtube-gifs-chat/internal/repository"
 	"github.com/dmytrii/youtube-gifs-chat/internal/utils"
 	"github.com/gin-gonic/gin"
 )
 
 type UserHandler struct {
-	ur *repository.UserRepository
+	ur    *repository.UserRepository
+	Cache *cache.Cache
 }
 
-func NewUserHandler(ur *repository.UserRepository) *UserHandler {
+func NewUserHandler(ur *repository.UserRepository, cch *cache.Cache) *UserHandler {
 	return &UserHandler{
-		ur: ur,
+		ur:    ur,
+		Cache: cch,
 	}
 }
 

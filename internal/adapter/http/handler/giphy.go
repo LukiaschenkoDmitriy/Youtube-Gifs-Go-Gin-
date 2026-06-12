@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 
+	"github.com/dmytrii/youtube-gifs-chat/internal/cache"
 	"github.com/dmytrii/youtube-gifs-chat/internal/usecase"
 	"github.com/dmytrii/youtube-gifs-chat/internal/utils"
 	"github.com/gin-gonic/gin"
@@ -10,11 +11,13 @@ import (
 
 type GiphyHandler struct {
 	giphyUC *usecase.GiphyUC
+	Cache   *cache.Cache
 }
 
-func NewGiphyHandler(giphyUC *usecase.GiphyUC) *GiphyHandler {
+func NewGiphyHandler(giphyUC *usecase.GiphyUC, cch *cache.Cache) *GiphyHandler {
 	return &GiphyHandler{
 		giphyUC: giphyUC,
+		Cache:   cch,
 	}
 }
 

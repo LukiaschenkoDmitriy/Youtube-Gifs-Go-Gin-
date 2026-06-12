@@ -1,6 +1,8 @@
 package http
 
 import (
+	"time"
+
 	"github.com/dmytrii/youtube-gifs-chat/internal/adapter/http/handler"
 	"github.com/dmytrii/youtube-gifs-chat/internal/middlware"
 	"github.com/gin-gonic/gin"
@@ -26,20 +28,24 @@ func CommentRouters(g *gin.RouterGroup, h *handler.CommentHandler) {
 	}
 }
 
-func OAuthRouters(g *gin.RouterGroup, h *handler.OAuthHandler, authEndpoint string) {
-	g.POST(authEndpoint+"/logout", h.Logout)
+func OAuthRouters(g *gin.RouterGroup, h *handler.OAuthHandler) {
+	g.POST(h.AuthEndpoint+"/logout", h.Logout)
 
 	guestGroup := g.Group("").Use(middlware.GuestRequredMiddleware())
 	{
-		guestGroup.GET(authEndpoint+"/login", h.RedirectToLogin)
-		guestGroup.GET(authEndpoint+"/callback", h.HandleCallback)
+		guestGroup.GET(h.AuthEndpoint+"/login", h.RedirectToLogin)
+		guestGroup.GET(h.AuthEndpoint+"/callback", h.HandleCallback)
 	}
 }
 
 func GiphyRouters(g *gin.RouterGroup, h *handler.GiphyHandler) {
 	g.Use(middlware.OAuthRequiredMiddleware())
 	{
-		g.GET("/giphy/trending", h.GetTrendingGifs)
+		tg := g.Group("")
+		{
+			tg.Use(middlware.CacheMiddleware(h.Cache, time.Duration(30*time.Minute)))
+			tg.GET("/giphy/trending", h.GetTrendingGifs)
+		}
 		g.GET("/giphy/search", h.SearchGifs)
 	}
 }
@@ -47,7 +53,12 @@ func GiphyRouters(g *gin.RouterGroup, h *handler.GiphyHandler) {
 func UserRouters(g *gin.RouterGroup, h *handler.UserHandler) {
 	g.Use(middlware.OAuthRequiredMiddleware())
 	{
-		g.GET("/users/current", h.GetCurrentUser)
+		cug := g.Group("")
+		{
+			cug.Use(middlware.UserCacheMiddleware(h.Cache, time.Duration(time.Hour)))
+			cug.GET("/users/current", h.GetCurrentUser)
+		}
+
 	}
 }
 

@@ -1,9 +1,12 @@
 package main
 
 import (
+	"time"
+
 	"github.com/dmytrii/youtube-gifs-chat/config"
 	"github.com/dmytrii/youtube-gifs-chat/internal/adapter/http"
 	"github.com/dmytrii/youtube-gifs-chat/internal/adapter/http/handler"
+	"github.com/dmytrii/youtube-gifs-chat/internal/cache"
 	"github.com/dmytrii/youtube-gifs-chat/internal/database"
 	"github.com/dmytrii/youtube-gifs-chat/internal/dependency"
 	"github.com/dmytrii/youtube-gifs-chat/internal/middlware"
@@ -14,13 +17,13 @@ import (
 )
 
 func main() {
-	c, r, p := initDeps()
+	c, r, p, cch := initDeps()
 
 	r.LoadHTMLGlob("templates/*")
 
 	setupErrorRoute(r)
 	setupGlobalMiddlewares(r, c)
-	setupRoutes(r, c, p)
+	setupRoutes(r, c, p, cch)
 
 	r.Run()
 }
@@ -34,14 +37,14 @@ func setupErrorRoute(r *gin.Engine) {
 	})
 }
 
-func setupRoutes(e *gin.Engine, c *config.Config, p *pgxpool.Pool) {
-	http.OAuthRouters(e.Group(""), dependency.GetOAuthHandler(c, p), c.AuthEndpoint)
-	http.GiphyRouters(e.Group(""), dependency.GetGiphyHandler(c))
+func setupRoutes(e *gin.Engine, c *config.Config, p *pgxpool.Pool, cch *cache.Cache) {
+	http.OAuthRouters(e.Group(""), dependency.GetOAuthHandler(c, p))
+	http.GiphyRouters(e.Group(""), dependency.GetGiphyHandler(c, cch))
 
 	// Entity Routes
 	eg := e.Group("/e")
 
-	http.UserRouters(eg.Group(""), dependency.GetUserHandler(p))
+	http.UserRouters(eg.Group(""), dependency.GetUserHandler(p, cch))
 	http.CommentRouters(eg.Group(""), dependency.GetCommentHandler(p))
 
 	http.AdditionalRouters(e.Group(""), handler.NewAdditionalHandler())
@@ -49,12 +52,15 @@ func setupRoutes(e *gin.Engine, c *config.Config, p *pgxpool.Pool) {
 
 func setupGlobalMiddlewares(e *gin.Engine, c *config.Config) {
 	//e.Use(middlware.JsonAcceptHeaderMiddleware())
-	e.Use(middlware.DebugResponseLogger())
-	e.Use(middlware.DebugRequestLogger())
+	if c.Debug {
+		e.Use(middlware.DebugResponseLogger())
+		e.Use(middlware.DebugRequestLogger())
+	}
+
 	e.Use(sessions.Sessions("session", *session.CreateStore(c)))
 }
 
-func initDeps() (*config.Config, *gin.Engine, *pgxpool.Pool) {
+func initDeps() (*config.Config, *gin.Engine, *pgxpool.Pool, *cache.Cache) {
 	c, err := config.GetConfig()
 
 	if err != nil {
@@ -67,5 +73,7 @@ func initDeps() (*config.Config, *gin.Engine, *pgxpool.Pool) {
 		panic(err)
 	}
 
-	return c, gin.Default(), p
+	cch := cache.NewCache(time.Duration(c.CacheTTL)*time.Second, c.Debug)
+
+	return c, gin.Default(), p, cch
 }

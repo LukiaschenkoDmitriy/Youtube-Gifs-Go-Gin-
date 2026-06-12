@@ -14,12 +14,14 @@ import (
 type OAuthHandler struct {
 	oauthUseCase   *usecase.OAuthUC
 	userRepository *repository.UserRepository
+	AuthEndpoint   string
 }
 
-func NewOAuthHandler(oauthUseCase *usecase.OAuthUC, userRepository *repository.UserRepository) *OAuthHandler {
+func NewOAuthHandler(oauthUseCase *usecase.OAuthUC, userRepository *repository.UserRepository, authEndpoint string) *OAuthHandler {
 	return &OAuthHandler{
 		oauthUseCase:   oauthUseCase,
 		userRepository: userRepository,
+		AuthEndpoint:   authEndpoint,
 	}
 }
 

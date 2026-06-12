@@ -45,7 +45,7 @@ func (g *GiphyUC) GetGifsBySearch(ctx context.Context, search string, offset str
 	})
 }
 
-func (g *GiphyUC) baseRequest(ctx context.Context, method string, url string, params map[string]string) ([]*domain.Gif, error) {
+func (g *GiphyUC) doRequest(ctx context.Context, method string, url string, params map[string]string) (*http.Response, error) {
 	r, err := http.NewRequestWithContext(ctx, method, url, nil)
 
 	if err != nil {
@@ -62,7 +62,11 @@ func (g *GiphyUC) baseRequest(ctx context.Context, method string, url string, pa
 
 	r.URL.RawQuery = q.Encode()
 
-	resp, err := http.DefaultClient.Do(r)
+	return http.DefaultClient.Do(r)
+}
+
+func (g *GiphyUC) baseRequest(ctx context.Context, method string, url string, params map[string]string) ([]*domain.Gif, error) {
+	resp, err := g.doRequest(ctx, method, url, params)
 
 	if err != nil {
 		return nil, err
