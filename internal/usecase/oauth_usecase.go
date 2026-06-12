@@ -14,6 +14,11 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+var (
+	ErrNoYouTubeChannel    = errors.New("OAuth2: YouTube channel not found")
+	ErrYouTubeAccessDenied = errors.New("OAuth2: YouTube access was not granted")
+)
+
 type OAuthUC struct {
 	Config *oauth2.Config
 }
@@ -27,7 +32,7 @@ type BaseUserInfo struct {
 
 type YoutubeChannelInfo struct {
 	Items []struct {
-		Snippet *struct {
+		Snippet struct {
 			CustomUrl *string `json:"customUrl"`
 		} `json:"snippet"`
 	} `json:"items"`
@@ -111,8 +116,12 @@ func (oa *OAuthUC) getUserInfo(ctx context.Context, client *http.Client) (*BaseU
 
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
+	switch resp.StatusCode {
+	case http.StatusOK:
+	case http.StatusUnauthorized:
 		return nil, errors.New("OAuth2: Token is invalid")
+	default:
+		return nil, fmt.Errorf("OAuth2: userinfo API unexpected status %d", resp.StatusCode)
 	}
 
 	baseInfo := new(BaseUserInfo)
@@ -139,30 +148,27 @@ func (oa *OAuthUC) getUserCustomURL(ctx context.Context, client *http.Client) (*
 
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New("OAuth2: Token is invalid")
-	}
-
 	switch resp.StatusCode {
 	case http.StatusOK:
-		channelInfo := new(YoutubeChannelInfo)
-
-		if err := json.NewDecoder(resp.Body).Decode(&channelInfo); err != nil {
-			return nil, err
-		}
-
-		if len(channelInfo.Items) == 0 {
-			return nil, errors.New("OAuth2: Youtube channel not found")
-		}
-
-		return channelInfo.Items[0].Snippet.CustomUrl, nil
 	case http.StatusForbidden:
-		return nil, errors.New("OAuth2: YouTube scope doesn't provide")
+		return nil, ErrYouTubeAccessDenied
 	case http.StatusUnauthorized:
 		return nil, errors.New("OAuth2: Token is invalid")
 	default:
 		return nil, fmt.Errorf("OAuth2: YouTube API unexpected status %d", resp.StatusCode)
 	}
+
+	channelInfo := new(YoutubeChannelInfo)
+
+	if err := json.NewDecoder(resp.Body).Decode(&channelInfo); err != nil {
+		return nil, err
+	}
+
+	if len(channelInfo.Items) == 0 {
+		return nil, ErrNoYouTubeChannel
+	}
+
+	return channelInfo.Items[0].Snippet.CustomUrl, nil
 }
 
 func getConfig(c config.Config) *oauth2.Config {

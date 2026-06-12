@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/dmytrii/youtube-gifs-chat/internal/repository"
@@ -78,8 +79,17 @@ func (oa *OAuthHandler) HandleCallback(c *gin.Context) {
 	user, err := oa.oauthUseCase.GetUser(ctx, code)
 
 	if err != nil {
+		message := "Authorization was interrupted or cancelled."
+
+		switch {
+		case errors.Is(err, usecase.ErrNoYouTubeChannel):
+			message = "A YouTube channel is required to use this application."
+		case errors.Is(err, usecase.ErrYouTubeAccessDenied):
+			message = "YouTube access was not granted. Please allow it and try again."
+		}
+
 		c.HTML(http.StatusBadRequest, "auth-error.html", gin.H{
-			"message": "Authorization was interrupted or cancelled.",
+			"message": message,
 		})
 		return
 	}
@@ -93,7 +103,12 @@ func (oa *OAuthHandler) HandleCallback(c *gin.Context) {
 		return
 	}
 
-	session.SetSessionUserId(c, user)
+	if err := session.SetSessionUserId(c, user); err != nil {
+		c.HTML(http.StatusInternalServerError, "auth-error.html", gin.H{
+			"message": "Failed to save session.",
+		})
+		return
+	}
 
 	c.HTML(http.StatusOK, "auth-success.html", gin.H{})
 }
