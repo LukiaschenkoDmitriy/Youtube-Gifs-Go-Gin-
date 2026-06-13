@@ -64,4 +64,5 @@ func UserRouters(g *gin.RouterGroup, h *handler.UserHandler) {
 
 func AdditionalRouters(g *gin.RouterGroup, h *handler.AdditionalHandler) {
 	g.POST("/u/ping", h.Ping)
+	g.GET("/", h.Index)
 }
