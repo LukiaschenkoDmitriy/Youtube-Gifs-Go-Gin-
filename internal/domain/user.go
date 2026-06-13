@@ -10,3 +10,8 @@ type User struct {
 	SettingsVideosOn bool    `json:"settings_videos_on" db:"settings_videos_on"`
 	SettingsShortsOn bool    `json:"settings_shorts_on" db:"settings_shorts_on"`
 }
+
+type UpdateUserSettingsRequest struct {
+	SettingsVideosOn bool `json:"settings_videos_on" db:"settings_videos_on"`
+	SettingsShortsOn bool `json:"settings_shorts_on" db:"settings_shorts_on"`
+}

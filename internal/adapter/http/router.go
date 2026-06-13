@@ -58,7 +58,7 @@ func UserRouters(g *gin.RouterGroup, h *handler.UserHandler) {
 			cug.Use(middlware.UserCacheMiddleware(h.Cache, time.Duration(time.Hour)))
 			cug.GET("/users/current", h.GetCurrentUser)
 		}
-
+		g.PATCH("/users/current/settings", h.UpdateUserSettings)
 	}
 }
 

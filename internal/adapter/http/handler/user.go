@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/dmytrii/youtube-gifs-chat/internal/cache"
+	"github.com/dmytrii/youtube-gifs-chat/internal/domain"
 	"github.com/dmytrii/youtube-gifs-chat/internal/repository"
 	"github.com/dmytrii/youtube-gifs-chat/internal/utils"
 	"github.com/gin-gonic/gin"
@@ -34,4 +35,23 @@ func (uh *UserHandler) GetCurrentUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, utils.GetSuccessResponse(user, "User retrieved successfully"))
+}
+
+func (uh *UserHandler) UpdateUserSettings(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	settings, userId := new(domain.UpdateUserSettingsRequest), c.GetString("userId")
+
+	if err := c.BindJSON(&settings); err != nil {
+		c.JSON(http.StatusBadRequest, utils.GetErrorResponse(err.Error(), err))
+		return
+	}
+
+	if err := uh.ur.UpdateUserSettings(ctx, userId, *settings); err != nil {
+		c.JSON(http.StatusBadRequest, utils.GetErrorResponse("Failed to update user settings", err))
+		return
+	}
+
+	c.JSON(http.StatusOK, utils.GetSuccessResponse(nil, "User successfully updated"))
+
 }

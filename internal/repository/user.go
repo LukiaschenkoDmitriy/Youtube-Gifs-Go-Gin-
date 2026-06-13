@@ -17,6 +17,14 @@ func NewUserRepository(pool *pgxpool.Pool) *UserRepository {
 	}
 }
 
+func (ur *UserRepository) UpdateUserSettings(ctx context.Context, userId string, settings domain.UpdateUserSettingsRequest) error {
+	query := `UPDATE users SET settings_videos_on = $1, settings_shorts_on = $2 WHERE id = $3 `
+
+	_, err := ur.pool.Exec(ctx, query, settings.SettingsVideosOn, settings.SettingsShortsOn, userId)
+
+	return err
+}
+
 func (ur *UserRepository) GetUserByOAuthId(ctx context.Context, oauthId string) (*domain.User, error) {
 	query := `SELECT id, oauth_id, picture, name, email, custom_url FROM users WHERE oauth_id = $1`
 
