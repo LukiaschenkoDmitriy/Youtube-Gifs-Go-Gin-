@@ -24,6 +24,7 @@ func main() {
 	setupErrorRoute(r)
 	setupGlobalMiddlewares(r, c)
 	setupRoutes(r, c, p, cch)
+	setupStaticFiles(r)
 
 	r.Run()
 }
@@ -35,6 +36,10 @@ func setupErrorRoute(r *gin.Engine) {
 			"path":   c.Request.URL.Path,
 		})
 	})
+}
+
+func setupStaticFiles(r *gin.Engine) {
+	r.StaticFile("/favicon.png", "./favicon.png")
 }
 
 func setupRoutes(e *gin.Engine, c *config.Config, p *pgxpool.Pool, cch *cache.Cache) {
