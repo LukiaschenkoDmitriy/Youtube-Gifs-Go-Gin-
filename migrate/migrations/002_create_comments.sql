@@ -1,5 +1,3 @@
--- 002_create_comments.sql
-
 -- +goose Up
 CREATE TABLE comments (
    id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -8,7 +6,8 @@ CREATE TABLE comments (
    gif_url    VARCHAR(255) DEFAULT NULL,
    text       TEXT DEFAULT NULL,
    answer_to  UUID DEFAULT NULL,
-   created_at TIMESTAMP DEFAULT NOW(),
+   position     BIGINT GENERATED ALWAYS AS IDENTITY,
+   created_at TIMESTAMPTZ DEFAULT NOW(),
    FOREIGN KEY (user_id) REFERENCES users(id),
    FOREIGN KEY (answer_to) REFERENCES comments(id) ON DELETE CASCADE
 );
