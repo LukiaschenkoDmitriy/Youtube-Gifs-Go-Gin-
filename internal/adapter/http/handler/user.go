@@ -52,6 +52,8 @@ func (uh *UserHandler) UpdateUserSettings(c *gin.Context) {
 		return
 	}
 
+	uh.Cache.Invalidate(userId + ":/e/users/current")
+
 	c.JSON(http.StatusOK, utils.GetSuccessResponse(nil, "User successfully updated"))
 
 }

@@ -47,7 +47,7 @@ func (ur *UserRepository) GetUserByOAuthId(ctx context.Context, oauthId string) 
 }
 
 func (ur *UserRepository) GetUserById(ctx context.Context, id string) (*domain.User, error) {
-	query := `SELECT id, oauth_id, picture, name, email, custom_url FROM users WHERE id = $1`
+	query := `SELECT id, oauth_id, picture, name, email, custom_url, settings_videos_on, settings_shorts_on FROM users WHERE id = $1`
 
 	user := new(domain.User)
 
@@ -58,6 +58,8 @@ func (ur *UserRepository) GetUserById(ctx context.Context, id string) (*domain.U
 		&user.Name,
 		&user.Email,
 		&user.CustomUrl,
+		&user.SettingsVideosOn,
+		&user.SettingsShortsOn,
 	)
 
 	if err != nil {
