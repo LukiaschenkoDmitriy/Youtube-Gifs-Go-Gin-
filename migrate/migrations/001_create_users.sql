@@ -8,6 +8,8 @@ CREATE TABLE users (
    name       VARCHAR(255) NOT NULL,
    email      VARCHAR(255) UNIQUE NOT NULL,
    custom_url VARCHAR(255) DEFAULT NULL,
+   settings_videos_on BOOLEAN DEFAULT TRUE,
+   settings_shorts_on BOOLEAN DEFAULT TRUE,
    created_at TIMESTAMP DEFAULT NOW()
 );
 
