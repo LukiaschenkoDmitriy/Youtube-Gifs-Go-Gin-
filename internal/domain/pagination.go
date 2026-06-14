@@ -1,8 +1,9 @@
 package domain
 
 type Meta struct {
-	NextCursor int  `json:"next_cursor"`
-	HasCrusor  bool `json:"has_cursor"`
+	NextCursor    int  `json:"next_cursor"`
+	HasCrusor     bool `json:"has_cursor"`
+	CommentsCount int  `json:"comments_count"`
 }
 
 type Pagination struct {

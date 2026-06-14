@@ -151,6 +151,10 @@ func (cr *CommentRepository) GetCommentByVideoId(ctx context.Context, videoId st
 		ORDER BY t.position ASC
     `
 
+	allCommentsQuery := `
+		SELECT COUNT(*) as comments_count FROM comments WHERE video_id = $1 AND answer_to IS NULL
+	`
+
 	var userIdParam interface{}
 	if userId != nil {
 		userIdParam = *userId
@@ -179,6 +183,9 @@ func (cr *CommentRepository) GetCommentByVideoId(ctx context.Context, videoId st
 			NextCursor: cursor,
 		},
 	}
+
+	commentsCountRow := cr.pool.QueryRow(ctx, allCommentsQuery, videoId)
+	commentsCountRow.Scan(&commentsPagination.Meta.CommentsCount)
 
 	if len(comments) > limit {
 		commentsPagination.Meta.HasCrusor = true
