@@ -77,30 +77,26 @@ func (cr *CommentRepository) DislikeComment(ctx context.Context, userId string, 
 
 func (cr *CommentRepository) GetCommentById(ctx context.Context, id string, userId string) (*domain.Comment, error) {
 	query := `
-        WITH RECURSIVE comment_tree AS (
-            -- базовий коментар
-            SELECT c.* FROM comments c WHERE c.id = $1
-
-            UNION ALL
-
-            -- всі нащадки рекурсивно
-            SELECT c.* FROM comments c
-            INNER JOIN comment_tree ct ON c.answer_to = ct.id
-        )
-        SELECT 
-            c.id, c.user_id, c.video_id, c.gif_url, c.text, c.answer_to, c.created_at,
-            u.id, u.name, u.picture, u.custom_url,
-            COUNT(CASE WHEN ca.type = 1 THEN 1 END) AS likes,
-            COUNT(CASE WHEN ca.type = 2 THEN 1 END) AS dislikes,
-            COALESCE(BOOL_OR(ca.type = 1 AND ca.user_id = $2::uuid), false) AS liked_by_me,
-            COALESCE(BOOL_OR(ca.type = 2 AND ca.user_id = $2::uuid), false) AS disliked_by_me
-        FROM comment_tree c
-        JOIN users u ON u.id = c.user_id
-        LEFT JOIN comment_actions ca ON ca.comment_id = c.id
-        GROUP BY c.id, c.user_id, c.video_id, c.gif_url, c.text, c.answer_to, c.created_at,
-                 u.id, u.name, u.picture, u.custom_url
-        ORDER BY c.created_at ASC
-    `
+		WITH RECURSIVE comment_tree AS (
+			SELECT c.* FROM comments c WHERE c.id = $1
+			UNION ALL
+			SELECT c.* FROM comments c
+			INNER JOIN comment_tree ct ON c.answer_to = ct.id
+		)
+		SELECT 
+			c.id, c.user_id, c.video_id, c.gif_url, c.text, c.answer_to, c.created_at, c.position,
+			u.id, u.name, u.picture, u.custom_url,
+			COUNT(CASE WHEN ca.type = 1 THEN 1 END) AS likes,
+			COUNT(CASE WHEN ca.type = 2 THEN 1 END) AS dislikes,
+			COALESCE(BOOL_OR(ca.type = 1 AND ca.user_id = $2::uuid), false) AS liked_by_me,
+			COALESCE(BOOL_OR(ca.type = 2 AND ca.user_id = $2::uuid), false) AS disliked_by_me
+		FROM comment_tree c
+		JOIN users u ON u.id = c.user_id
+		LEFT JOIN comment_actions ca ON ca.comment_id = c.id
+		GROUP BY c.id, c.user_id, c.video_id, c.gif_url, c.text, c.answer_to, c.created_at, c.position,
+				u.id, u.name, u.picture, u.custom_url
+		ORDER BY c.created_at ASC
+	`
 
 	rows, err := cr.pool.Query(ctx, query, id, userId)
 	if err != nil {
@@ -121,25 +117,38 @@ func (cr *CommentRepository) GetCommentById(ctx context.Context, id string, user
 		return nil, fmt.Errorf("comment not found")
 	}
 
-	// будуємо дерево і повертаємо корінь
 	roots := cr.buildTree(comments)
 	return roots[0], nil
 }
 
-func (cr *CommentRepository) GetCommentByVideoId(ctx context.Context, videoId string, userId *string) ([]*domain.Comment, error) {
+func (cr *CommentRepository) GetCommentByVideoId(ctx context.Context, videoId string, userId *string, cursor int, limit int) (*domain.Pagination, error) {
 	query := `
-        SELECT 
-            c.id, c.user_id, c.video_id, c.gif_url, c.text, c.answer_to, c.created_at,
-            u.id AS user_id, u.name AS user_name, u.picture AS user_picture, u.custom_url AS user_custom_url,
-            COUNT(CASE WHEN ca.type = 1 THEN 1 END) AS likes,
-            COUNT(CASE WHEN ca.type = 2 THEN 1 END) AS dislikes,
-            COALESCE(BOOL_OR(ca.type = 1 AND ca.user_id = $2::uuid), false) AS liked_by_me,
-            COALESCE(BOOL_OR(ca.type = 2 AND ca.user_id = $2::uuid), false) AS disliked_by_me
-        FROM comments c
-        JOIN users u ON u.id = c.user_id
-        LEFT JOIN comment_actions ca ON ca.comment_id = c.id
-        WHERE c.video_id = $1
-        GROUP BY c.id, u.id
+        WITH RECURSIVE roots AS (
+			SELECT id, position
+			FROM comments
+			WHERE video_id = $1 AND answer_to IS NULL AND position > $3
+			ORDER BY position ASC
+			LIMIT $4 + 1
+		),
+		tree AS (
+			SELECT c.* FROM comments c
+			JOIN roots r ON r.id = c.id
+			UNION ALL
+			SELECT c.* FROM comments c
+			JOIN tree t ON c.answer_to = t.id
+		)
+		SELECT
+			t.id, t.user_id, t.video_id, t.gif_url, t.text, t.answer_to, t.created_at, t.position,
+			u.id AS commenter_id, u.name AS user_name, u.picture AS user_picture, u.custom_url AS user_custom_url,
+			COUNT(CASE WHEN ca.type = 1 THEN 1 END) AS likes,
+			COUNT(CASE WHEN ca.type = 2 THEN 1 END) AS dislikes,
+			COALESCE(BOOL_OR(ca.type = 1 AND ca.user_id = $2::uuid), false) AS liked_by_me,
+			COALESCE(BOOL_OR(ca.type = 2 AND ca.user_id = $2::uuid), false) AS disliked_by_me
+		FROM tree t
+		JOIN users u ON u.id = t.user_id
+		LEFT JOIN comment_actions ca ON ca.comment_id = t.id
+		GROUP BY t.id, t.user_id, t.video_id, t.gif_url, t.text, t.answer_to, t.created_at, t.position, u.id, u.name, u.picture, u.custom_url
+		ORDER BY t.position ASC
     `
 
 	var userIdParam interface{}
@@ -147,7 +156,7 @@ func (cr *CommentRepository) GetCommentByVideoId(ctx context.Context, videoId st
 		userIdParam = *userId
 	}
 
-	rows, err := cr.pool.Query(ctx, query, videoId, userIdParam)
+	rows, err := cr.pool.Query(ctx, query, videoId, userIdParam, cursor, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -162,14 +171,35 @@ func (cr *CommentRepository) GetCommentByVideoId(ctx context.Context, videoId st
 		comments = append(comments, c)
 	}
 
-	return cr.buildTree(comments), nil
+	comments = cr.buildTree(comments)
+
+	commentsPagination := &domain.Pagination{
+		Meta: &domain.Meta{
+			HasCrusor:  false,
+			NextCursor: cursor,
+		},
+	}
+
+	if len(comments) > limit {
+		commentsPagination.Meta.HasCrusor = true
+		commentsPagination.Meta.NextCursor = comments[limit-1].Position
+		comments = comments[:limit]
+	}
+
+	if comments == nil {
+		commentsPagination.Entities = []*domain.Comment{}
+	} else {
+		commentsPagination.Entities = comments
+	}
+
+	return commentsPagination, nil
 
 }
 
 func (cr *CommentRepository) scanComment(row pgx.Row) (*domain.Comment, error) {
 	c := &domain.Comment{}
 	err := row.Scan(
-		&c.ID, &c.UserId, &c.VideoId, &c.GifUrl, &c.Text, &c.AnswerTo, &c.CreatedAt,
+		&c.ID, &c.UserId, &c.VideoId, &c.GifUrl, &c.Text, &c.AnswerTo, &c.CreatedAt, &c.Position,
 		&c.User.ID, &c.User.Name, &c.User.Picture, &c.User.CustomUrl,
 		&c.Likes, &c.Dislikes,
 		&c.LikedByMe, &c.DislikedByMe,
@@ -215,7 +245,7 @@ func (cr *CommentRepository) buildTree(comments []*domain.Comment) []*domain.Com
 func scanCommentFields(scan func(...any) error) (*domain.Comment, error) {
 	c := &domain.Comment{}
 	err := scan(
-		&c.ID, &c.UserId, &c.VideoId, &c.GifUrl, &c.Text, &c.AnswerTo, &c.CreatedAt,
+		&c.ID, &c.UserId, &c.VideoId, &c.GifUrl, &c.Text, &c.AnswerTo, &c.CreatedAt, &c.Position,
 		&c.User.ID, &c.User.Name, &c.User.Picture, &c.User.CustomUrl,
 		&c.Likes, &c.Dislikes,
 		&c.LikedByMe, &c.DislikedByMe,

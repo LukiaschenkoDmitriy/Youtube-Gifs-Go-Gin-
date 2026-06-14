@@ -32,16 +32,13 @@ func NewGiphyUC(c *config.Config) *GiphyUC {
 	return &GiphyUC{apiKey: c.GiphyApiKey}
 }
 
-func (g *GiphyUC) GetTrendingGifs(ctx context.Context, offset string) ([]*domain.Gif, error) {
-	return g.baseRequest(ctx, "GET", "https://api.giphy.com/v1/gifs/trending", map[string]string{
-		"offset": offset,
-	})
+func (g *GiphyUC) GetTrendingGifs(ctx context.Context) ([]*domain.Gif, error) {
+	return g.baseRequest(ctx, "GET", "https://api.giphy.com/v1/gifs/trending", map[string]string{})
 }
 
-func (g *GiphyUC) GetGifsBySearch(ctx context.Context, search string, offset string) ([]*domain.Gif, error) {
+func (g *GiphyUC) GetGifsBySearch(ctx context.Context, search string) ([]*domain.Gif, error) {
 	return g.baseRequest(ctx, "GET", "https://api.giphy.com/v1/gifs/search", map[string]string{
-		"q":      search,
-		"offset": offset,
+		"q": search,
 	})
 }
 

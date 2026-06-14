@@ -24,7 +24,7 @@ func NewGiphyHandler(giphyUC *usecase.GiphyUC, cch *cache.Cache) *GiphyHandler {
 func (g *GiphyHandler) GetTrendingGifs(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	gifs, err := g.giphyUC.GetTrendingGifs(ctx, c.DefaultQuery("offset", "0"))
+	gifs, err := g.giphyUC.GetTrendingGifs(ctx)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, utils.GetErrorResponse("Failed to get trending gifs", err))
@@ -37,7 +37,7 @@ func (g *GiphyHandler) GetTrendingGifs(c *gin.Context) {
 func (g *GiphyHandler) SearchGifs(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	gifs, err := g.giphyUC.GetGifsBySearch(ctx, c.Query("search"), c.DefaultQuery("offset", "0"))
+	gifs, err := g.giphyUC.GetGifsBySearch(ctx, c.Query("search"))
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, utils.GetErrorResponse("Failed to search gifs", err))

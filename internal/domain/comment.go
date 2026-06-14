@@ -14,6 +14,7 @@ type Comment struct {
 	CreatedAt    time.Time  `json:"created_at" db:"created_at"`
 	LikedByMe    bool       `json:"liked_by_me" db:"-"`
 	DislikedByMe bool       `json:"disliked_by_me" db:"-"`
+	Position     int        `json:"position" db:"position"`
 	User         User       `json:"user" db:"-"`
 	Answers      []*Comment `json:"answers" db:"-"`
 }

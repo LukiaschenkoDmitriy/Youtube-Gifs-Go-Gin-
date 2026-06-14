@@ -28,7 +28,7 @@ func (h *CommentHandler) DeleteComment(c *gin.Context) {
 	err := h.cr.DeleteComment(ctx, commentId, userId)
 
 	if err != nil {
-		c.JSON(http.StatusBadRequest, utils.GetErrorResponse("Delete comment failed", err))
+		c.JSON(http.StatusBadRequest, utils.GetErrorResponse("Comment not found", err))
 		return
 	}
 
@@ -55,7 +55,7 @@ func (h *CommentHandler) CreateComment(c *gin.Context) {
 
 	comment, userId := new(domain.CreateCommentRequest), c.GetString("userId")
 
-	if err := c.BindJSON(&comment); err != nil {
+	if err := c.ShouldBindJSON(comment); err != nil {
 		c.JSON(http.StatusBadRequest, utils.GetErrorResponse(err.Error(), err))
 		return
 	}
@@ -78,7 +78,7 @@ func (h *CommentHandler) LikeComment(c *gin.Context) {
 	err := h.cr.LikeComment(ctx, userId, commentId)
 
 	if err != nil {
-		c.JSON(http.StatusBadRequest, utils.GetErrorResponse("Like comment failed", err))
+		c.JSON(http.StatusBadRequest, utils.GetErrorResponse("Comment not found", err))
 		return
 	}
 
@@ -93,7 +93,7 @@ func (h *CommentHandler) DislikeComment(c *gin.Context) {
 	err := h.cr.DislikeComment(ctx, userId, commentId)
 
 	if err != nil {
-		c.JSON(http.StatusBadRequest, utils.GetErrorResponse("Dislike comment failed", err))
+		c.JSON(http.StatusBadRequest, utils.GetErrorResponse("Comment not found", err))
 		return
 	}
 
@@ -104,17 +104,37 @@ func (h *CommentHandler) GetCommentByVideoId(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	videoId := c.Param("videoId")
+
 	userId, ok := session.GetUserId(c)
+
+	pagination := new(domain.PaginationRequest)
+
+	if err := c.ShouldBindQuery(pagination); err != nil {
+		c.JSON(http.StatusBadRequest, utils.GetErrorResponse(err.Error(), err))
+		return
+	}
+
+	if pagination.Cursor < 0 {
+		pagination.Cursor = 0
+	}
+
+	if pagination.Limit < 10 {
+		pagination.Limit = 10
+	}
+
+	if pagination.Limit > 100 {
+		pagination.Limit = 100
+	}
 
 	var userIdPtr *string
 	if ok {
 		userIdPtr = &userId
 	}
 
-	comments, err := h.cr.GetCommentByVideoId(ctx, videoId, userIdPtr)
+	comments, err := h.cr.GetCommentByVideoId(ctx, videoId, userIdPtr, pagination.Cursor, pagination.Limit)
 
 	if err != nil {
-		c.JSON(http.StatusBadRequest, utils.GetErrorResponse("Get video comments failed", err))
+		c.JSON(http.StatusBadRequest, utils.GetErrorResponse(err.Error(), err))
 		return
 	}
 

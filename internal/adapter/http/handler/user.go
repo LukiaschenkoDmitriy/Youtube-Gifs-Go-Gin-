@@ -42,7 +42,7 @@ func (uh *UserHandler) UpdateUserSettings(c *gin.Context) {
 
 	settings, userId := new(domain.UpdateUserSettingsRequest), c.GetString("userId")
 
-	if err := c.BindJSON(&settings); err != nil {
+	if err := c.ShouldBindJSON(&settings); err != nil {
 		c.JSON(http.StatusBadRequest, utils.GetErrorResponse(err.Error(), err))
 		return
 	}
