@@ -1,8 +1,7 @@
-package main
+package fixture
 
 import (
 	"context"
-	"flag"
 	"log"
 	"math/rand"
 
@@ -46,20 +45,7 @@ var sampleTexts = []string{
 	"",
 }
 
-func main() {
-	userId := flag.String("user", "", "UUID of the user the comments are created on behalf of (required)")
-	count := flag.Int("count", 0, "Number of comments to generate (required)")
-	videoId := flag.String("video", "fixture-video", "video_id the comments are attached to")
-	nestedChance := flag.Float64("nested", 0.5, "Probability (0..1) that a comment is nested (a reply)")
-	flag.Parse()
-
-	if *userId == "" {
-		log.Fatal("the -user flag (user UUID) is required")
-	}
-	if *count <= 0 {
-		log.Fatal("the -count flag must be greater than 0")
-	}
-
+func RunCommentsFixture(userId *string, count *int, videoId *string, nestedChance *float64) {
 	c, err := config.GetConfig()
 	if err != nil {
 		log.Fatal(err)
@@ -73,7 +59,6 @@ func main() {
 
 	ctx := context.Background()
 
-	// createdIds — ids of already created comments, used to build nested replies.
 	createdIds := make([]string, 0, *count)
 
 	insertQuery := `

@@ -1,9 +1,8 @@
-package main
+package migrate
 
 import (
 	"embed"
 	"log"
-	"os"
 
 	"github.com/dmytrii/youtube-gifs-chat/config"
 	"github.com/dmytrii/youtube-gifs-chat/internal/database"
@@ -14,11 +13,7 @@ import (
 //go:embed migrations/*.sql
 var migrationsFS embed.FS
 
-func main() {
-	if len(os.Args) < 2 || (os.Args[1] != "up" && os.Args[1] != "down") {
-		log.Fatal("usage: migrate <up|down>")
-	}
-
+func RunMigration(arg string) {
 	c, err := config.GetConfig()
 
 	if err != nil {
@@ -39,7 +34,7 @@ func main() {
 	}
 	goose.SetBaseFS(migrationsFS)
 
-	if os.Args[1] == "up" {
+	if arg == "up" {
 		err = goose.Up(db, "migrations")
 	} else {
 		err = goose.Down(db, "migrations")
